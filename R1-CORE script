@@ -1,0 +1,97 @@
+R1-CORE
+
+enable
+configure terminal
+hostname R1-Core
+
+! Basic Security
+no ip domain-lookup
+enable secret class
+line con 0
+ password cisco
+ login
+ logging synchronous
+ exit
+line vty 0 4
+ password cisco
+ login
+ exit
+
+! Physical Interface to R2 (Serial 1/0)
+interface Serial1/0
+ description Link_to_R2
+ ip address 172.16.255.1 255.255.255.252
+ clock rate 64000
+ no shutdown
+
+! Physical Interface to ISP (Eth 0/2)
+interface Ethernet0/2
+ description Link_to_ISP
+ ip address 200.100.10.1 255.255.255.252
+ no shutdown
+
+! Subinterfaces Inter-VLAN Routing & HSRP Active (Primary)
+interface Ethernet0/0.10
+ description VLAN_Docentes
+ encapsulation dot1Q 10
+ ip address 172.16.0.2 255.255.255.0
+ standby version 2
+ standby 10 ip 172.16.0.1
+ standby 10 priority 110
+ standby 10 preempt
+
+interface Ethernet0/0.20
+ description VLAN_Estudiantes
+ encapsulation dot1Q 20
+ ip address 172.16.16.2 255.255.248.0
+ standby version 2
+ standby 20 ip 172.16.16.1
+ standby 20 priority 110
+ standby 20 preempt
+
+interface Ethernet0/0.30
+ description VLAN_Gestion
+ encapsulation dot1Q 30
+ ip address 172.16.1.2 255.255.255.224
+ standby version 2
+ standby 30 ip 172.16.1.1
+ standby 30 priority 110
+ standby 30 preempt
+
+interface Ethernet0/0.40
+ description VLAN_Voz
+ encapsulation dot1Q 40
+ ip address 172.16.1.34 255.255.255.224
+ standby version 2
+ standby 40 ip 172.16.1.33
+ standby 40 priority 110
+ standby 40 preempt
+
+interface Ethernet0/0
+ no shutdown
+
+! Default Route to ISP
+ip route 0.0.0.0 0.0.0.0 200.100.10.2
+
+! OSPFv2 Routing Configuration (Area 0)
+router ospf 1
+ router-id 1.1.1.1
+ network 172.16.0.0 0.0.255.255 area 0
+ network 172.16.255.0 0.0.0.3 area 0
+ default-information originate
+ exit
+
+! Access Control Lists (ACLs)
+ip access-list extended ACL_PROTECT_MGMT
+ permit tcp 172.16.1.0 0.0.0.31 any eq 22
+ permit icmp any any
+ deny ip any 172.16.1.0 0.0.0.31
+ permit ip any any
+ exit
+
+interface Ethernet0/0.30
+ ip access-group ACL_PROTECT_MGMT in
+ exit
+
+end
+write memory
