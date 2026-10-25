@@ -1,0 +1,23 @@
+SW 
+enable
+configure terminal
+hostname SW
+
+vlan 70
+ name Datacenter
+
+! Trunk to Router R2
+interface Ethernet0/0
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ no shutdown
+
+! Access Port SERVICIOS
+interface Ethernet0/1
+ switchport mode access
+ switchport access vlan 70
+ spanning-tree portfast
+ no shutdown
+
+end
+write memory

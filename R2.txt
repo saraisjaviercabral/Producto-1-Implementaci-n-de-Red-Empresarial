@@ -1,0 +1,65 @@
+R2
+
+enable
+configure terminal
+hostname R2
+
+no ip domain-lookup
+enable secret class
+line con 0
+ password cisco
+ login
+ exit
+line vty 0 4
+ password cisco
+ login
+ exit
+
+! Serial Interface to R1-Core
+interface Serial1/0
+ description Link_to_R1-Core
+ ip address 172.16.255.2 255.255.255.252
+ no shutdown
+
+! Subinterfaces for Branch VLANs (via SWA13)
+interface Ethernet0/0.50
+ description VLAN_Academicos
+ encapsulation dot1Q 50
+ ip address 172.17.0.1 255.255.255.128
+
+interface Ethernet0/0.60
+ description VLAN_Finanzas
+ encapsulation dot1Q 60
+ ip address 172.17.0.129 255.255.255.128
+
+interface Ethernet0/0
+ no shutdown
+
+! Subinterface to Datacenter / SW
+interface Ethernet0/1.70
+ description LAN_Datacenter
+ encapsulation dot1Q 70
+ ip address 172.17.1.1 255.255.255.192
+
+interface Ethernet0/1
+ no shutdown
+
+! OSPFv2 Routing Configuration (Area 0 Multi-area Support)
+router ospf 1
+ router-id 2.2.2.2
+ network 172.16.255.0 0.0.0.3 area 0
+ network 172.17.0.0 0.0.255.255 area 0
+ exit
+
+! Security ACL - Isolate Finanzas from Academicos
+ip access-list extended ACL_FINANZAS_SEC
+ deny ip 172.17.0.0 0.0.0.127 172.17.0.128 0.0.0.127
+ permit ip any any
+ exit
+
+interface Ethernet0/0.60
+ ip access-group ACL_FINANZAS_SEC in
+ exit
+
+end
+write memory
